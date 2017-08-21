@@ -1,33 +1,39 @@
 package com.zendesk.maxwell;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.zendesk.maxwell.metrics.MaxwellMetrics;
 import com.zendesk.maxwell.bootstrap.AbstractBootstrapper;
 import com.zendesk.maxwell.bootstrap.AsynchronousBootstrapper;
 import com.zendesk.maxwell.bootstrap.NoOpBootstrapper;
 import com.zendesk.maxwell.bootstrap.SynchronousBootstrapper;
+import com.zendesk.maxwell.metrics.MaxwellMetrics;
 import com.zendesk.maxwell.metrics.Metrics;
-import com.zendesk.maxwell.producer.*;
+import com.zendesk.maxwell.producer.AbstractProducer;
+import com.zendesk.maxwell.producer.BufferedProducer;
+import com.zendesk.maxwell.producer.FileProducer;
+import com.zendesk.maxwell.producer.MaxwellKafkaProducer;
+import com.zendesk.maxwell.producer.MaxwellKinesisProducer;
+import com.zendesk.maxwell.producer.ProfilerProducer;
+import com.zendesk.maxwell.producer.StdoutProducer;
 import com.zendesk.maxwell.recovery.RecoveryInfo;
+import com.zendesk.maxwell.replication.HeartbeatNotifier;
+import com.zendesk.maxwell.replication.HeartbeatObserver;
 import com.zendesk.maxwell.replication.MysqlVersion;
 import com.zendesk.maxwell.replication.Position;
 import com.zendesk.maxwell.replication.Replicator;
 import com.zendesk.maxwell.row.RowMap;
-import com.zendesk.maxwell.schema.ReadOnlyMysqlPositionStore;
 import com.zendesk.maxwell.schema.MysqlPositionStore;
 import com.zendesk.maxwell.schema.PositionStoreThread;
-
+import com.zendesk.maxwell.schema.ReadOnlyMysqlPositionStore;
 import com.zendesk.maxwell.util.StoppableTask;
 import com.zendesk.maxwell.util.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import snaq.db.ConnectionPool;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MaxwellContext {
 	static final Logger LOGGER = LoggerFactory.getLogger(MaxwellContext.class);
@@ -38,18 +44,21 @@ public class MaxwellContext {
 	private final ConnectionPool schemaConnectionPool;
 	private final MaxwellConfig config;
 	private final MaxwellMetrics metrics;
-	private MysqlPositionStore positionStore;
+	private final MysqlPositionStore positionStore;
 	private PositionStoreThread positionStoreThread;
 	private Long serverID;
 	private Position initialPosition;
 	private CaseSensitivity caseSensitivity;
 	private AbstractProducer producer;
-	private TaskManager taskManager;
+	private final TaskManager taskManager;
 	private volatile Exception error;
 
 	private MysqlVersion mysqlVersion;
 	private Replicator replicator;
 	private Thread terminationThread;
+
+	private final HeartbeatNotifier heartbeatNotifier;
+	private final HeartbeatObserver heartbeatObserver;
 
 	public MaxwellContext(MaxwellConfig config) throws SQLException {
 		this.config = config;
@@ -87,10 +96,17 @@ public class MaxwellContext {
 		} else {
 			this.positionStore = new MysqlPositionStore(this.getMaxwellConnectionPool(), this.getServerID(), this.config.clientID, config.gtidMode);
 		}
+
+		this.heartbeatNotifier = new HeartbeatNotifier();
+		this.heartbeatObserver = new HeartbeatObserver(this);
 	}
 
 	public MaxwellConfig getConfig() {
 		return this.config;
+	}
+
+	public Replicator getReplicator() {
+		return replicator;
 	}
 
 	public Connection getReplicationConnection() throws SQLException {
@@ -401,5 +417,13 @@ public class MaxwellContext {
 
 	public Metrics getMetrics() {
 		return metrics;
+	}
+
+	public HeartbeatNotifier getHeartbeatNotifier() {
+		return heartbeatNotifier;
+	}
+
+	public HeartbeatObserver getHeartbeatObserver() {
+		return heartbeatObserver;
 	}
 }

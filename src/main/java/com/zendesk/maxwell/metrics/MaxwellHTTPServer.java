@@ -16,16 +16,14 @@ import java.util.concurrent.TimeoutException;
 
 public class MaxwellHTTPServer {
 	public MaxwellHTTPServer(int port, MetricRegistry metricRegistry, HealthCheckRegistry healthCheckRegistry, MaxwellContext context) {
-		MaxwellHTTPServerWorker maxwellHTTPServerWorker = new MaxwellHTTPServerWorker(port, metricRegistry, healthCheckRegistry);
+		MaxwellHTTPServerWorker maxwellHTTPServerWorker = new MaxwellHTTPServerWorker(port, metricRegistry, healthCheckRegistry, context);
 		Thread thread = new Thread(maxwellHTTPServerWorker);
 
 		context.addTask(maxwellHTTPServerWorker);
-		thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-			public void uncaughtException(Thread t, Throwable e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-		});
+		thread.setUncaughtExceptionHandler((t, e) -> {
+      e.printStackTrace();
+      System.exit(1);
+    });
 
 		thread.setDaemon(true);
 		thread.start();
@@ -37,22 +35,28 @@ class MaxwellHTTPServerWorker implements StoppableTask, Runnable {
 	private int port;
 	private MetricRegistry metricRegistry;
 	private HealthCheckRegistry healthCheckRegistry;
+	private MaxwellContext context;
 	private Server server;
 
-	public MaxwellHTTPServerWorker(int port, MetricRegistry metricRegistry, HealthCheckRegistry healthCheckRegistry) {
+	public MaxwellHTTPServerWorker(int port, MetricRegistry metricRegistry, HealthCheckRegistry healthCheckRegistry,
+																 MaxwellContext context) {
 		this.port = port;
 		this.metricRegistry = metricRegistry;
 		this.healthCheckRegistry = healthCheckRegistry;
+		this.context = context;
 	}
 
 	public void startServer() throws Exception {
 		this.server = new Server(this.port);
+
+		DiagnosticHealthCheck diagnosticHealthCheck = new DiagnosticHealthCheck(context);
 
 		ServletContextHandler handler = new ServletContextHandler(this.server, "/");
 		// TODO: there is a way to wire these up automagically via the AdminServlet, but it escapes me right now
 		handler.addServlet(new ServletHolder(new MetricsServlet(this.metricRegistry)), "/metrics");
 		handler.addServlet(new ServletHolder(new HealthCheckServlet(this.healthCheckRegistry)), "/healthcheck");
 		handler.addServlet(new ServletHolder(new PingServlet()), "/ping");
+		handler.addServlet(new ServletHolder(diagnosticHealthCheck), "/diagnostic");
 
 		this.server.start();
 		this.server.join();

@@ -111,6 +111,10 @@ public class MaxwellKafkaProducer extends AbstractProducer {
 	public StoppableTask getStoppableTask() {
 		return this.worker;
 	}
+
+	public KafkaProducerDiagnostic getDiagnostic() {
+		return new KafkaProducerDiagnostic(worker, context.getConfig(), context.getPositionStoreThread());
+	}
 }
 
 class MaxwellKafkaProducerWorker extends AbstractAsyncProducer implements Runnable, StoppableTask {
@@ -196,9 +200,24 @@ class MaxwellKafkaProducerWorker extends AbstractAsyncProducer implements Runnab
 
 	@Override
 	public void sendAsync(RowMap r, AbstractAsyncProducer.CallbackCompleter cc) throws Exception {
+		ProducerRecord<String, String> record = makeProducerRecord(r);
+
+		/* if debug logging isn't enabled, release the reference to `value`, which can ease memory pressure somewhat */
+		String value = KafkaCallback.LOGGER.isDebugEnabled() ? record.value() : null;
+
+		KafkaCallback callback = new KafkaCallback(cc, r.getPosition(), record.key(), value, this.metricsTimer,
+				this.succeededMessageCount, this.failedMessageCount, this.succeededMessageMeter, this.failedMessageMeter, this.context);
+
+		sendAsync(record, callback);
+	}
+
+	void sendAsync(ProducerRecord<String, String> record, Callback callback) throws Exception {
+		kafka.send(record, callback);
+	}
+
+	ProducerRecord<String, String> makeProducerRecord(final RowMap r) throws Exception {
 		String key = r.pkToJson(keyFormat);
 		String value = r.toJSON(outputConfig);
-
 		ProducerRecord<String, String> record;
 		if (r instanceof DDLMap) {
 			record = new ProducerRecord<>(this.ddlTopic, this.ddlPartitioner.kafkaPartition(r, getNumPartitions(this.ddlTopic)), key, value);
@@ -206,15 +225,7 @@ class MaxwellKafkaProducerWorker extends AbstractAsyncProducer implements Runnab
 			String topic = generateTopic(this.topic, r);
 			record = new ProducerRecord<>(topic, this.partitioner.kafkaPartition(r, getNumPartitions(topic)), key, value);
 		}
-
-		/* if debug logging isn't enabled, release the reference to `value`, which can ease memory pressure somewhat */
-		if ( !KafkaCallback.LOGGER.isDebugEnabled() )
-			value = null;
-
-		KafkaCallback callback = new KafkaCallback(cc, r.getPosition(), key, value, this.metricsTimer,
-				this.succeededMessageCount, this.failedMessageCount, this.succeededMessageMeter, this.failedMessageMeter, this.context);
-
-		kafka.send(record, callback);
+		return record;
 	}
 
 	@Override

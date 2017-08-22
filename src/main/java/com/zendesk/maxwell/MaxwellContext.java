@@ -9,13 +9,14 @@ import com.zendesk.maxwell.metrics.Metrics;
 import com.zendesk.maxwell.producer.AbstractProducer;
 import com.zendesk.maxwell.producer.BufferedProducer;
 import com.zendesk.maxwell.producer.FileProducer;
+import com.zendesk.maxwell.producer.KafkaProducerDiagnostic;
 import com.zendesk.maxwell.producer.MaxwellKafkaProducer;
 import com.zendesk.maxwell.producer.MaxwellKinesisProducer;
 import com.zendesk.maxwell.producer.ProfilerProducer;
 import com.zendesk.maxwell.producer.StdoutProducer;
 import com.zendesk.maxwell.recovery.RecoveryInfo;
-import com.zendesk.maxwell.replication.HeartbeatNotifier;
 import com.zendesk.maxwell.replication.HeartbeatDiagnostic;
+import com.zendesk.maxwell.replication.HeartbeatNotifier;
 import com.zendesk.maxwell.replication.MysqlVersion;
 import com.zendesk.maxwell.replication.Position;
 import com.zendesk.maxwell.replication.Replicator;
@@ -59,6 +60,8 @@ public class MaxwellContext {
 
 	private final HeartbeatNotifier heartbeatNotifier;
 	private final HeartbeatDiagnostic heartbeatDiagnostic;
+
+	private KafkaProducerDiagnostic producerDiagnostic;
 
 	public MaxwellContext(MaxwellConfig config) throws SQLException {
 		this.config = config;
@@ -342,7 +345,9 @@ public class MaxwellContext {
 				this.producer = new FileProducer(this, this.config.outputFile);
 				break;
 			case "kafka":
-				this.producer = new MaxwellKafkaProducer(this, this.config.getKafkaProperties(), this.config.kafkaTopic);
+				MaxwellKafkaProducer maxwellKafkaProducer = new MaxwellKafkaProducer(this, this.config.getKafkaProperties(), this.config.kafkaTopic);
+				this.producerDiagnostic = maxwellKafkaProducer.getDiagnostic();
+				this.producer = maxwellKafkaProducer;
 				break;
 			case "kinesis":
 				this.producer = new MaxwellKinesisProducer(this, this.config.kinesisStream);
@@ -426,4 +431,9 @@ public class MaxwellContext {
 	public HeartbeatDiagnostic getHeartbeatDiagnostic() {
 		return heartbeatDiagnostic;
 	}
+
+	public KafkaProducerDiagnostic getProducerDiagnostic() {
+		return producerDiagnostic;
+	}
+
 }

@@ -28,7 +28,7 @@ public class DiagnosticHealthCheck extends HttpServlet {
 		resp.setStatus(HttpServletResponse.SC_OK);
 		resp.setHeader(CACHE_CONTROL, NO_CACHE);
 		resp.setContentType(CONTENT_TYPE);
-		CompletableFuture<Long> latency = context.getHeartbeatObserver().getLatency();
+		CompletableFuture<Long> latency = context.getHeartbeatDiagnostic().getLatency();
 		try (PrintWriter writer = resp.getWriter()) {
 			writer.println(latency.get().toString());
 		} catch (InterruptedException | ExecutionException e) {

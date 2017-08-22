@@ -15,7 +15,7 @@ import com.zendesk.maxwell.producer.ProfilerProducer;
 import com.zendesk.maxwell.producer.StdoutProducer;
 import com.zendesk.maxwell.recovery.RecoveryInfo;
 import com.zendesk.maxwell.replication.HeartbeatNotifier;
-import com.zendesk.maxwell.replication.HeartbeatObserver;
+import com.zendesk.maxwell.replication.HeartbeatDiagnostic;
 import com.zendesk.maxwell.replication.MysqlVersion;
 import com.zendesk.maxwell.replication.Position;
 import com.zendesk.maxwell.replication.Replicator;
@@ -58,7 +58,7 @@ public class MaxwellContext {
 	private Thread terminationThread;
 
 	private final HeartbeatNotifier heartbeatNotifier;
-	private final HeartbeatObserver heartbeatObserver;
+	private final HeartbeatDiagnostic heartbeatDiagnostic;
 
 	public MaxwellContext(MaxwellConfig config) throws SQLException {
 		this.config = config;
@@ -98,7 +98,7 @@ public class MaxwellContext {
 		}
 
 		this.heartbeatNotifier = new HeartbeatNotifier();
-		this.heartbeatObserver = new HeartbeatObserver(this);
+		this.heartbeatDiagnostic = new HeartbeatDiagnostic(this);
 	}
 
 	public MaxwellConfig getConfig() {
@@ -423,7 +423,7 @@ public class MaxwellContext {
 		return heartbeatNotifier;
 	}
 
-	public HeartbeatObserver getHeartbeatObserver() {
-		return heartbeatObserver;
+	public HeartbeatDiagnostic getHeartbeatDiagnostic() {
+		return heartbeatDiagnostic;
 	}
 }

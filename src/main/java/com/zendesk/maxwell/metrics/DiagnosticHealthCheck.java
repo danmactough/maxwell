@@ -1,13 +1,15 @@
 package com.zendesk.maxwell.metrics;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zendesk.maxwell.MaxwellContext;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,15 +25,22 @@ public class DiagnosticHealthCheck extends HttpServlet {
 	private static final String CACHE_CONTROL = "Cache-Control";
 	private static final String NO_CACHE = "must-revalidate,no-cache,no-store";
 	private final MaxwellContext context;
+	private transient ObjectMapper mapper;
 
 	public DiagnosticHealthCheck(MaxwellContext context) {
 		this.context = context;
 	}
 
 	@Override
+	public void init(ServletConfig config) throws ServletException {
+		super.init(config);
+
+		this.mapper = new ObjectMapper().registerModule(new DiagnosticHealthCheckModule());
+	}
+
+	@Override
 	protected void doGet(HttpServletRequest req,
 											 HttpServletResponse resp) throws ServletException, IOException {
-		resp.setStatus(HttpServletResponse.SC_OK);
 		resp.setHeader(CACHE_CONTROL, NO_CACHE);
 		resp.setContentType(CONTENT_TYPE);
 		Map<Diagnostic, CompletableFuture<DiagnosticResult.Check>> futureChecks = context.getDiagnostics().stream()
@@ -49,8 +58,18 @@ public class DiagnosticHealthCheck extends HttpServlet {
 			}
 		}).collect(Collectors.toList());
 
-		try (PrintWriter writer = resp.getWriter()) {
-			checks.forEach(check -> check.getInfo().forEach((key, value) -> writer.println(key + ": " + value)));
+		DiagnosticResult result = new DiagnosticResult(checks);
+
+		if (result.isSuccess()) {
+			resp.setStatus(HttpServletResponse.SC_OK);
+		} else if (result.isMandatoryFailed()) {
+			resp.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+		} else {
+			resp.setStatus(299); // HTTP 299 Disappointed
+		}
+
+		try (OutputStream output = resp.getOutputStream()) {
+			mapper.writer().writeValue(output, result);
 		}
 	}
 }

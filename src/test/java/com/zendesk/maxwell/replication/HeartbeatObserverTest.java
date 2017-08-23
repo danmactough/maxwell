@@ -18,7 +18,7 @@ public class HeartbeatObserverTest {
 	public void testObserverIsAddedToNotifier() {
 		// Given
 		HeartbeatNotifier notifier = new HeartbeatNotifier();
-		new HeartbeatDiagnostic.HeartbeatObserver(notifier, Clock.systemUTC());
+		new BinlogConnectorDiagnostic.HeartbeatObserver(notifier, Clock.systemUTC());
 
 		// When
 		// Then
@@ -29,7 +29,7 @@ public class HeartbeatObserverTest {
 	public void testObserverIsRemovedAfterUpdate() {
 		// Given
 		HeartbeatNotifier notifier = new HeartbeatNotifier();
-		new HeartbeatDiagnostic.HeartbeatObserver(notifier, Clock.systemUTC());
+		new BinlogConnectorDiagnostic.HeartbeatObserver(notifier, Clock.systemUTC());
 
 		// When
 		notifier.heartbeat(12345);
@@ -43,7 +43,7 @@ public class HeartbeatObserverTest {
 		// Given
 		HeartbeatNotifier notifier = new HeartbeatNotifier();
 		Clock clock = Clock.fixed(Instant.now(), ZoneOffset.UTC);
-		HeartbeatDiagnostic.HeartbeatObserver observer = new HeartbeatDiagnostic.HeartbeatObserver(notifier, clock);
+		BinlogConnectorDiagnostic.HeartbeatObserver observer = new BinlogConnectorDiagnostic.HeartbeatObserver(notifier, clock);
 
 		long now = clock.millis();
 		long heartbeat = now - 10;
@@ -58,7 +58,7 @@ public class HeartbeatObserverTest {
 	@Test
 	public void testFail() {
 		// Given
-		HeartbeatDiagnostic.HeartbeatObserver observer = new HeartbeatDiagnostic.HeartbeatObserver(new HeartbeatNotifier(), Clock.systemUTC());
+		BinlogConnectorDiagnostic.HeartbeatObserver observer = new BinlogConnectorDiagnostic.HeartbeatObserver(new HeartbeatNotifier(), Clock.systemUTC());
 
 		// When
 		RuntimeException ex = new RuntimeException("blah");

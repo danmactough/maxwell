@@ -8,8 +8,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class DiagnosticHealthCheck extends HttpServlet {
 
@@ -28,11 +34,23 @@ public class DiagnosticHealthCheck extends HttpServlet {
 		resp.setStatus(HttpServletResponse.SC_OK);
 		resp.setHeader(CACHE_CONTROL, NO_CACHE);
 		resp.setContentType(CONTENT_TYPE);
-		CompletableFuture<Long> latency = context.getHeartbeatDiagnostic().getLatency();
+		Map<Diagnostic, CompletableFuture<DiagnosticResult.Check>> futureChecks = context.getDiagnostics().stream()
+				.collect(Collectors.toMap(diagnostic -> diagnostic, Diagnostic::check));
+
+		List<DiagnosticResult.Check> checks = futureChecks.entrySet().stream().map(future -> {
+			try {
+				return future.getValue().get(2, TimeUnit.SECONDS); // TODO use config
+			} catch (InterruptedException | ExecutionException | TimeoutException e) {
+				Diagnostic diagnostic = future.getKey();
+				diagnostic.close();
+				Map<String, String> info = new HashMap<>();
+				info.put("message", "check did not return after 5"); // TODO use config
+				return new DiagnosticResult.Check(diagnostic.getName(), false, diagnostic.isMandatory(), info);
+			}
+		}).collect(Collectors.toList());
+
 		try (PrintWriter writer = resp.getWriter()) {
-			writer.println(latency.get().toString());
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
+			checks.forEach(check -> check.getInfo().forEach((key, value) -> writer.println(key + ": " + value)));
 		}
 	}
 }

@@ -89,7 +89,7 @@ class KafkaCallback implements Callback {
 }
 
 
-public class MaxwellKafkaProducer extends AbstractProducer {
+public class MaxwellKafkaProducer extends AbstractProducer implements DiagnosticProducer {
 	private final ArrayBlockingQueue<RowMap> queue;
 	private final MaxwellKafkaProducerWorker worker;
 
@@ -112,6 +112,7 @@ public class MaxwellKafkaProducer extends AbstractProducer {
 		return this.worker;
 	}
 
+	@Override
 	public KafkaProducerDiagnostic getDiagnostic() {
 		return new KafkaProducerDiagnostic(worker, context.getConfig(), context.getPositionStoreThread());
 	}

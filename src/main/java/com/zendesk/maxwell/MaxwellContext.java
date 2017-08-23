@@ -4,18 +4,19 @@ import com.zendesk.maxwell.bootstrap.AbstractBootstrapper;
 import com.zendesk.maxwell.bootstrap.AsynchronousBootstrapper;
 import com.zendesk.maxwell.bootstrap.NoOpBootstrapper;
 import com.zendesk.maxwell.bootstrap.SynchronousBootstrapper;
+import com.zendesk.maxwell.metrics.Diagnostic;
 import com.zendesk.maxwell.metrics.MaxwellMetrics;
 import com.zendesk.maxwell.metrics.Metrics;
 import com.zendesk.maxwell.producer.AbstractProducer;
 import com.zendesk.maxwell.producer.BufferedProducer;
+import com.zendesk.maxwell.producer.DiagnosticProducer;
 import com.zendesk.maxwell.producer.FileProducer;
-import com.zendesk.maxwell.producer.KafkaProducerDiagnostic;
 import com.zendesk.maxwell.producer.MaxwellKafkaProducer;
 import com.zendesk.maxwell.producer.MaxwellKinesisProducer;
 import com.zendesk.maxwell.producer.ProfilerProducer;
 import com.zendesk.maxwell.producer.StdoutProducer;
 import com.zendesk.maxwell.recovery.RecoveryInfo;
-import com.zendesk.maxwell.replication.HeartbeatDiagnostic;
+import com.zendesk.maxwell.replication.BinlogConnectorDiagnostic;
 import com.zendesk.maxwell.replication.HeartbeatNotifier;
 import com.zendesk.maxwell.replication.MysqlVersion;
 import com.zendesk.maxwell.replication.Position;
@@ -34,6 +35,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MaxwellContext {
@@ -59,9 +63,6 @@ public class MaxwellContext {
 	private Thread terminationThread;
 
 	private final HeartbeatNotifier heartbeatNotifier;
-	private final HeartbeatDiagnostic heartbeatDiagnostic;
-
-	private KafkaProducerDiagnostic producerDiagnostic;
 
 	public MaxwellContext(MaxwellConfig config) throws SQLException {
 		this.config = config;
@@ -101,7 +102,6 @@ public class MaxwellContext {
 		}
 
 		this.heartbeatNotifier = new HeartbeatNotifier();
-		this.heartbeatDiagnostic = new HeartbeatDiagnostic(this);
 	}
 
 	public MaxwellConfig getConfig() {
@@ -345,9 +345,7 @@ public class MaxwellContext {
 				this.producer = new FileProducer(this, this.config.outputFile);
 				break;
 			case "kafka":
-				MaxwellKafkaProducer maxwellKafkaProducer = new MaxwellKafkaProducer(this, this.config.getKafkaProperties(), this.config.kafkaTopic);
-				this.producerDiagnostic = maxwellKafkaProducer.getDiagnostic();
-				this.producer = maxwellKafkaProducer;
+				this.producer = new MaxwellKafkaProducer(this, this.config.getKafkaProperties(), this.config.kafkaTopic);
 				break;
 			case "kinesis":
 				this.producer = new MaxwellKinesisProducer(this, this.config.kinesisStream);
@@ -428,12 +426,11 @@ public class MaxwellContext {
 		return heartbeatNotifier;
 	}
 
-	public HeartbeatDiagnostic getHeartbeatDiagnostic() {
-		return heartbeatDiagnostic;
+	public List<Diagnostic> getDiagnostics() {
+		ArrayList<Diagnostic> diagnostics = new ArrayList<>(Collections.singletonList(new BinlogConnectorDiagnostic(this)));
+		if (this.producer instanceof DiagnosticProducer) {
+			diagnostics.add(((DiagnosticProducer) producer).getDiagnostic());
+		}
+		return diagnostics;
 	}
-
-	public KafkaProducerDiagnostic getProducerDiagnostic() {
-		return producerDiagnostic;
-	}
-
 }

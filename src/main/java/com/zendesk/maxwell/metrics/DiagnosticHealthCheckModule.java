@@ -42,12 +42,21 @@ public class DiagnosticHealthCheckModule extends Module {
 				json.writeStringField("name", check.getName());
 				json.writeBooleanField("success", check.isSuccess());
 				json.writeBooleanField("mandatory", check.isMandatory());
-				check.getInfo().forEach((k, v) -> {
+				check.getResource().ifPresent(resource -> {
 					try {
-						json.writeStringField(k, v);
+						json.writeStringField("resource", resource);
 					} catch (IOException e) {
-						LOGGER.error("Could not serialize DiagnosticResult.Check info", e);
+						LOGGER.error("Could not serialize DiagnosticResult.Check resource", e);
 					}
+				});
+				check.getInfo().ifPresent(info -> {
+					info.forEach((k, v) -> {
+						try {
+							json.writeStringField(k, v);
+						} catch (IOException e) {
+							LOGGER.error("Could not serialize DiagnosticResult.Check info", e);
+						}
+					});
 				});
 				json.writeEndObject();
 			} catch (IOException e) {

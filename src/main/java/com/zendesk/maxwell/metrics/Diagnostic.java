@@ -1,5 +1,6 @@
 package com.zendesk.maxwell.metrics;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public interface Diagnostic {
@@ -8,8 +9,8 @@ public interface Diagnostic {
 
 	boolean isMandatory();
 
-	CompletableFuture<DiagnosticResult.Check> check();
+	Optional<String> getResource();
 
-	void close();
+	CompletableFuture<DiagnosticResult.Check> check();
 
 }

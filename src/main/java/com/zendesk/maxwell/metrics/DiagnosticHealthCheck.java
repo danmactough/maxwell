@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -47,14 +48,15 @@ public class DiagnosticHealthCheck extends HttpServlet {
 				.collect(Collectors.toMap(diagnostic -> diagnostic, Diagnostic::check));
 
 		List<DiagnosticResult.Check> checks = futureChecks.entrySet().stream().map(future -> {
+			CompletableFuture<DiagnosticResult.Check> futureCheck = future.getValue();
 			try {
-				return future.getValue().get(2, TimeUnit.SECONDS); // TODO use config
+				return futureCheck.get(2, TimeUnit.SECONDS); // TODO use config
 			} catch (InterruptedException | ExecutionException | TimeoutException e) {
+				futureCheck.cancel(true);
 				Diagnostic diagnostic = future.getKey();
-				diagnostic.close();
 				Map<String, String> info = new HashMap<>();
 				info.put("message", "check did not return after 5"); // TODO use config
-				return new DiagnosticResult.Check(diagnostic.getName(), false, diagnostic.isMandatory(), info);
+				return new DiagnosticResult.Check(diagnostic, false, Optional.of(info));
 			}
 		}).collect(Collectors.toList());
 

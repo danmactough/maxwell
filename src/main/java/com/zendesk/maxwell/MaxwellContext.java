@@ -63,6 +63,7 @@ public class MaxwellContext {
 	private Thread terminationThread;
 
 	private final HeartbeatNotifier heartbeatNotifier;
+	private final List<Diagnostic> diagnostics;
 
 	public MaxwellContext(MaxwellConfig config) throws SQLException {
 		this.config = config;
@@ -102,6 +103,7 @@ public class MaxwellContext {
 		}
 
 		this.heartbeatNotifier = new HeartbeatNotifier();
+		this.diagnostics = new ArrayList<>(Collections.singletonList(new BinlogConnectorDiagnostic(this)));
 	}
 
 	public MaxwellConfig getConfig() {
@@ -367,6 +369,10 @@ public class MaxwellContext {
 			}
 		}
 
+		if (this.producer != null && this.producer instanceof DiagnosticProducer) {
+			diagnostics.add(((DiagnosticProducer) producer).getDiagnostic());
+		}
+
 		StoppableTask task = null;
 		if (producer != null) {
 			task = producer.getStoppableTask();
@@ -427,10 +433,6 @@ public class MaxwellContext {
 	}
 
 	public List<Diagnostic> getDiagnostics() {
-		ArrayList<Diagnostic> diagnostics = new ArrayList<>(Collections.singletonList(new BinlogConnectorDiagnostic(this)));
-		if (this.producer instanceof DiagnosticProducer) {
-			diagnostics.add(((DiagnosticProducer) producer).getDiagnostic());
-		}
-		return diagnostics;
+		return this.diagnostics;
 	}
 }

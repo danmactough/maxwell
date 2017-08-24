@@ -2,6 +2,7 @@ package com.zendesk.maxwell.metrics;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class DiagnosticResult {
 
@@ -31,12 +32,14 @@ public class DiagnosticResult {
 		private final String name;
 		private final boolean success;
 		private final boolean mandatory;
-		private final Map<String, String> info;
+		private final Optional<String> resource;
+		private final Optional<Map<String, String>> info;
 
-		public Check(String name, boolean success, boolean mandatory, Map<String, String> info) {
-			this.name = name;
+		public Check(Diagnostic diagnostic, boolean success, Optional<Map<String, String>> info) {
+			this.name = diagnostic.getName();
 			this.success = success;
-			this.mandatory = mandatory;
+			this.mandatory = diagnostic.isMandatory();
+			this.resource = diagnostic.getResource();
 			this.info = info;
 		}
 
@@ -52,7 +55,11 @@ public class DiagnosticResult {
 			return mandatory;
 		}
 
-		public Map<String, String> getInfo() {
+		public Optional<String> getResource() {
+			return resource;
+		}
+
+		public Optional<Map<String, String>> getInfo() {
 			return info;
 		}
 	}

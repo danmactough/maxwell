@@ -12,6 +12,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class KafkaProducerDiagnostic implements Diagnostic {
@@ -19,7 +20,6 @@ public class KafkaProducerDiagnostic implements Diagnostic {
 	private final MaxwellKafkaProducerWorker producer;
 	private final MaxwellConfig config;
 	private final PositionStoreThread positionStoreThread;
-	private DiagnosticCallback callback;
 
 	public KafkaProducerDiagnostic(MaxwellKafkaProducerWorker producer, MaxwellConfig config, PositionStoreThread positionStoreThread) {
 		this.producer = producer;
@@ -43,12 +43,12 @@ public class KafkaProducerDiagnostic implements Diagnostic {
 	}
 
 	@Override
-	public void close() {
-		callback.latency.cancel(true);
+	public Optional<String> getResource() {
+		return Optional.ofNullable(config.getKafkaProperties().getProperty("bootstrap.servers"));
 	}
 
 	public CompletableFuture<Long> getLatency() {
-		callback = new DiagnosticCallback();
+		DiagnosticCallback callback = new DiagnosticCallback();
 		try {
 			RowMap rowMap = new RowMap("insert", config.databaseName, "dummy", System.currentTimeMillis(),
 					new ArrayList<>(), positionStoreThread.getPosition());
@@ -62,14 +62,14 @@ public class KafkaProducerDiagnostic implements Diagnostic {
 
 	private DiagnosticResult.Check normalResult(Long latency) {
 		Map<String, String> info = new HashMap<>();
-		info.put("latency", latency.toString());
-		return new DiagnosticResult.Check(getName(), true, isMandatory(), info);
+		info.put("message", "Kafka producer acknowledgement lag is " + latency.toString() + "ms");
+		return new DiagnosticResult.Check(this, true, Optional.of(info));
 	}
 
 	private DiagnosticResult.Check exceptionResult(Throwable e) {
 		Map<String, String> info = new HashMap<>();
 		info.put("error", e.getCause().toString());
-		return new DiagnosticResult.Check(getName(), false, isMandatory(), info);
+		return new DiagnosticResult.Check(this, false, Optional.of(info));
 	}
 
 	static class DiagnosticCallback implements Callback {

@@ -1,6 +1,7 @@
 package com.zendesk.maxwell.replication;
 
 import com.zendesk.maxwell.MaxwellContext;
+import com.zendesk.maxwell.MaxwellMysqlConfig;
 import com.zendesk.maxwell.metrics.Diagnostic;
 import com.zendesk.maxwell.metrics.DiagnosticResult;
 
@@ -9,16 +10,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class BinlogConnectorDiagnostic implements Diagnostic {
 
 	private final MaxwellContext context;
-	private HeartbeatObserver observer;
 
 	public BinlogConnectorDiagnostic(MaxwellContext context) {
 			this.context = context;
-		}
+	}
 
 	@Override
 	public String getName() {
@@ -36,13 +37,13 @@ public class BinlogConnectorDiagnostic implements Diagnostic {
 	}
 
 	@Override
-	public void close() {
-		observer.close();
-		observer.latency.cancel(true);
+	public Optional<String> getResource() {
+		MaxwellMysqlConfig mysql = context.getConfig().maxwellMysql;
+		return Optional.of(mysql.host + ":" + mysql.port);
 	}
 
 	public CompletableFuture<Long> getLatency() {
-		observer = new HeartbeatObserver(context.getHeartbeatNotifier(), Clock.systemUTC());
+		HeartbeatObserver observer = new HeartbeatObserver(context.getHeartbeatNotifier(), Clock.systemUTC());
 		try {
 			context.heartbeat();
 		} catch (Exception e) {
@@ -54,14 +55,14 @@ public class BinlogConnectorDiagnostic implements Diagnostic {
 
 	private DiagnosticResult.Check normalResult(Long latency) {
 		Map<String, String> info = new HashMap<>();
-		info.put("latency", latency.toString());
-		return new DiagnosticResult.Check(getName(), true, isMandatory(), info);
+		info.put("message", "Binlog replication lag is " + latency.toString() + "ms");
+		return new DiagnosticResult.Check(this, true, Optional.of(info));
 	}
 
 	private DiagnosticResult.Check exceptionResult(Throwable e) {
 		Map<String, String> info = new HashMap<>();
 		info.put("error", e.getCause().toString());
-		return new DiagnosticResult.Check(getName(), false, isMandatory(), info);
+		return new DiagnosticResult.Check(this, false, Optional.of(info));
 	}
 
 	static class HeartbeatObserver implements Observer {
@@ -70,9 +71,10 @@ public class BinlogConnectorDiagnostic implements Diagnostic {
 		private final Clock clock;
 
 		HeartbeatObserver(HeartbeatNotifier notifier, Clock clock) {
-			this.latency = new CompletableFuture<>();
 			this.notifier = notifier;
 			this.clock = clock;
+			this.latency = new CompletableFuture<>();
+			this.latency.whenComplete((value, exception) -> close());
 			notifier.addObserver(this);
 		}
 

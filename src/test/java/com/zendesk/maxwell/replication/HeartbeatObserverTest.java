@@ -21,6 +21,7 @@ public class HeartbeatObserverTest {
 		new BinlogConnectorDiagnostic.HeartbeatObserver(notifier, Clock.systemUTC());
 
 		// When
+
 		// Then
 		assertThat(notifier.countObservers(), is(1));
 	}

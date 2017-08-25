@@ -1,9 +1,9 @@
 package com.zendesk.maxwell.producer;
 
-import com.zendesk.maxwell.metrics.Diagnostic;
+import com.zendesk.maxwell.monitoring.MaxwellDiagnostic;
 
 public interface DiagnosticProducer {
 
-	Diagnostic getDiagnostic();
+	MaxwellDiagnostic getDiagnostic();
 
 }

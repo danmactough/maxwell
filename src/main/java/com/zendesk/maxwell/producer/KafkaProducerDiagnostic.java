@@ -3,8 +3,8 @@ package com.zendesk.maxwell.producer;
 import com.zendesk.maxwell.MaxwellConfig;
 import com.zendesk.maxwell.row.RowMap;
 import com.zendesk.maxwell.schema.PositionStoreThread;
-import com.zendesk.maxwell.metrics.Diagnostic;
-import com.zendesk.maxwell.metrics.DiagnosticResult;
+import com.zendesk.maxwell.monitoring.MaxwellDiagnostic;
+import com.zendesk.maxwell.monitoring.MaxwellDiagnosticResult;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class KafkaProducerDiagnostic implements Diagnostic {
+public class KafkaProducerDiagnostic implements MaxwellDiagnostic {
 
 	private final MaxwellKafkaProducerWorker producer;
 	private final MaxwellConfig config;
@@ -33,7 +33,7 @@ public class KafkaProducerDiagnostic implements Diagnostic {
 	}
 
 	@Override
-	public CompletableFuture<DiagnosticResult.Check> check() {
+	public CompletableFuture<MaxwellDiagnosticResult.Check> check() {
 		return getLatency().thenApply(this::normalResult).exceptionally(this::exceptionResult);
 	}
 
@@ -60,16 +60,16 @@ public class KafkaProducerDiagnostic implements Diagnostic {
 		return callback.latency;
 	}
 
-	private DiagnosticResult.Check normalResult(Long latency) {
+	private MaxwellDiagnosticResult.Check normalResult(Long latency) {
 		Map<String, String> info = new HashMap<>();
 		info.put("message", "Kafka producer acknowledgement lag is " + latency.toString() + "ms");
-		return new DiagnosticResult.Check(this, true, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, true, Optional.of(info));
 	}
 
-	private DiagnosticResult.Check exceptionResult(Throwable e) {
+	private MaxwellDiagnosticResult.Check exceptionResult(Throwable e) {
 		Map<String, String> info = new HashMap<>();
 		info.put("error", e.getCause().toString());
-		return new DiagnosticResult.Check(this, false, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, false, Optional.of(info));
 	}
 
 	static class DiagnosticCallback implements Callback {

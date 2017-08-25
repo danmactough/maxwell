@@ -2,8 +2,7 @@ package com.zendesk.maxwell;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.zendesk.maxwell.metrics.Metrics;
-import com.zendesk.maxwell.producer.AbstractProducer;
+import com.zendesk.maxwell.monitoring.MaxwellDiagnosticContext;
 import com.zendesk.maxwell.producer.MaxwellOutputConfig;
 import com.zendesk.maxwell.producer.ProducerFactory;
 import com.zendesk.maxwell.replication.BinlogPosition;
@@ -66,17 +65,18 @@ public class MaxwellConfig extends AbstractConfig {
 	public MetricRegistry metricRegistry;
 	public HealthCheckRegistry healthCheckRegistry;
 
+	public int monitoringHTTPPort;
 	public String metricsPrefix;
 	public String metricsReportingType;
 	public Long metricsSlf4jInterval;
-	public int metricsHTTPPort;
-
 	public String metricsDatadogType;
 	public String metricsDatadogTags;
 	public String metricsDatadogAPIKey;
 	public String metricsDatadogHost;
 	public int metricsDatadogPort;
 	public Long metricsDatadogInterval;
+
+	public MaxwellDiagnosticContext.Config diagnosticConfig;
 
 	public String clientID;
 	public Long replicaServerID;
@@ -203,6 +203,9 @@ public class MaxwellConfig extends AbstractConfig {
 		parser.accepts( "metrics_datadog_apikey", "the datadog api key to use when metrics_datadog_type = http" ).withOptionalArg();
 		parser.accepts( "metrics_datadog_host", "the host to publish metrics to when metrics_datadog_type = udp" ).withOptionalArg();
 		parser.accepts( "metrics_datadog_port", "the port to publish metrics to when metrics_datadog_type = udp" ).withOptionalArg();
+		parser.accepts( "diagnostic", "enable http diagnostic endpoint: true|false. default: false" ).withOptionalArg();
+		parser.accepts( "diagnostic_path", "the http diagnostic endpoint path when diagnostic=true. default: /diagnostic" ).withOptionalArg();
+		parser.accepts( "diagnostic_timeout", "the http diagnostic response timeout in ms when diagnostic=true. default: 5000" ).withOptionalArg();
 
 		parser.accepts( "__separator_9" );
 
@@ -317,13 +320,19 @@ public class MaxwellConfig extends AbstractConfig {
 		this.metricsPrefix = fetchOption("metrics_prefix", options, properties, "MaxwellMetrics");
 		this.metricsReportingType = fetchOption("metrics_type", options, properties, null);
 		this.metricsSlf4jInterval = fetchLongOption("metrics_slf4j_interval", options, properties, 60L);
-		this.metricsHTTPPort = Integer.parseInt(fetchOption("metrics_http_port", options, properties, "8080"));
+		this.monitoringHTTPPort = Integer.parseInt(fetchOption("monitoring_http_port", options, properties, "8080"));
 		this.metricsDatadogType = fetchOption("metrics_datadog_type", options, properties, "udp");
 		this.metricsDatadogTags = fetchOption("metrics_datadog_tags", options, properties, "");
 		this.metricsDatadogAPIKey = fetchOption("metrics_datadog_apikey", options, properties, "");
 		this.metricsDatadogHost = fetchOption("metrics_datadog_host", options, properties, "localhost");
 		this.metricsDatadogPort = Integer.parseInt(fetchOption("metrics_datadog_port", options, properties, "8125"));
 		this.metricsDatadogInterval = fetchLongOption("metrics_datadog_interval", options, properties, 60L);
+
+		this.diagnosticConfig = new MaxwellDiagnosticContext.Config();
+		this.diagnosticConfig.enable = fetchBooleanOption("diagnostic", options, properties, false);
+		this.diagnosticConfig.port = this.monitoringHTTPPort;
+		this.diagnosticConfig.path = fetchOption("diagnostic_path", options, properties, "/diagnostic");
+		this.diagnosticConfig.timeout = fetchLongOption("diagnostic_timeout", options, properties, 5000L);
 
 		this.includeDatabases   = fetchOption("include_dbs", options, properties, null);
 		this.excludeDatabases   = fetchOption("exclude_dbs", options, properties, null);

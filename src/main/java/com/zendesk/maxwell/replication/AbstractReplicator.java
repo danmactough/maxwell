@@ -5,7 +5,7 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.zendesk.maxwell.MaxwellFilter;
 import com.zendesk.maxwell.bootstrap.AbstractBootstrapper;
-import com.zendesk.maxwell.metrics.Metrics;
+import com.zendesk.maxwell.monitoring.Metrics;
 import com.zendesk.maxwell.producer.AbstractProducer;
 import com.zendesk.maxwell.row.HeartbeatRowMap;
 import com.zendesk.maxwell.row.RowMap;

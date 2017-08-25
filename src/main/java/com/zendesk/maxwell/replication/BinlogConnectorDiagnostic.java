@@ -2,8 +2,8 @@ package com.zendesk.maxwell.replication;
 
 import com.zendesk.maxwell.MaxwellContext;
 import com.zendesk.maxwell.MaxwellMysqlConfig;
-import com.zendesk.maxwell.metrics.Diagnostic;
-import com.zendesk.maxwell.metrics.DiagnosticResult;
+import com.zendesk.maxwell.monitoring.MaxwellDiagnostic;
+import com.zendesk.maxwell.monitoring.MaxwellDiagnosticResult;
 
 import java.time.Clock;
 import java.util.HashMap;
@@ -13,7 +13,7 @@ import java.util.Observer;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class BinlogConnectorDiagnostic implements Diagnostic {
+public class BinlogConnectorDiagnostic implements MaxwellDiagnostic {
 
 	private final MaxwellContext context;
 
@@ -27,7 +27,7 @@ public class BinlogConnectorDiagnostic implements Diagnostic {
 	}
 
 	@Override
-	public CompletableFuture<DiagnosticResult.Check> check() {
+	public CompletableFuture<MaxwellDiagnosticResult.Check> check() {
 		return getLatency().thenApply(this::normalResult).exceptionally(this::exceptionResult);
 	}
 
@@ -53,16 +53,16 @@ public class BinlogConnectorDiagnostic implements Diagnostic {
 		return observer.latency;
 	}
 
-	private DiagnosticResult.Check normalResult(Long latency) {
+	private MaxwellDiagnosticResult.Check normalResult(Long latency) {
 		Map<String, String> info = new HashMap<>();
 		info.put("message", "Binlog replication lag is " + latency.toString() + "ms");
-		return new DiagnosticResult.Check(this, true, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, true, Optional.of(info));
 	}
 
-	private DiagnosticResult.Check exceptionResult(Throwable e) {
+	private MaxwellDiagnosticResult.Check exceptionResult(Throwable e) {
 		Map<String, String> info = new HashMap<>();
 		info.put("error", e.getCause().toString());
-		return new DiagnosticResult.Check(this, false, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, false, Optional.of(info));
 	}
 
 	static class HeartbeatObserver implements Observer {

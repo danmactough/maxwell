@@ -4,9 +4,9 @@ import com.zendesk.maxwell.bootstrap.AbstractBootstrapper;
 import com.zendesk.maxwell.bootstrap.AsynchronousBootstrapper;
 import com.zendesk.maxwell.bootstrap.NoOpBootstrapper;
 import com.zendesk.maxwell.bootstrap.SynchronousBootstrapper;
-import com.zendesk.maxwell.metrics.Diagnostic;
-import com.zendesk.maxwell.metrics.MaxwellMetrics;
-import com.zendesk.maxwell.metrics.Metrics;
+import com.zendesk.maxwell.monitoring.MaxwellDiagnostic;
+import com.zendesk.maxwell.monitoring.MaxwellMetrics;
+import com.zendesk.maxwell.monitoring.Metrics;
 import com.zendesk.maxwell.producer.AbstractProducer;
 import com.zendesk.maxwell.producer.BufferedProducer;
 import com.zendesk.maxwell.producer.DiagnosticProducer;
@@ -63,7 +63,7 @@ public class MaxwellContext {
 	private Thread terminationThread;
 
 	private final HeartbeatNotifier heartbeatNotifier;
-	private final List<Diagnostic> diagnostics;
+	private final List<MaxwellDiagnostic> diagnostics;
 
 	public MaxwellContext(MaxwellConfig config) throws SQLException {
 		this.config = config;
@@ -432,7 +432,7 @@ public class MaxwellContext {
 		return heartbeatNotifier;
 	}
 
-	public List<Diagnostic> getDiagnostics() {
+	public List<MaxwellDiagnostic> getDiagnostics() {
 		return this.diagnostics;
 	}
 }

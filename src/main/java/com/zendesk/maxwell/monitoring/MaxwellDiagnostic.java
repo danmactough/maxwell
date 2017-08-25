@@ -1,9 +1,9 @@
-package com.zendesk.maxwell.metrics;
+package com.zendesk.maxwell.monitoring;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public interface Diagnostic {
+public interface MaxwellDiagnostic {
 
 	String getName();
 
@@ -11,6 +11,6 @@ public interface Diagnostic {
 
 	Optional<String> getResource();
 
-	CompletableFuture<DiagnosticResult.Check> check();
+	CompletableFuture<MaxwellDiagnosticResult.Check> check();
 
 }

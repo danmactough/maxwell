@@ -1,16 +1,16 @@
-package com.zendesk.maxwell.metrics;
+package com.zendesk.maxwell.monitoring;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class DiagnosticResult {
+public class MaxwellDiagnosticResult {
 
 	private final boolean success;
 	private final boolean mandatoryFailed;
 	private final List<Check> checks;
 
-	public DiagnosticResult(List<Check> checks) {
+	public MaxwellDiagnosticResult(List<Check> checks) {
 		success = checks.stream().allMatch(Check::isSuccess);
 		mandatoryFailed = checks.stream().anyMatch(check -> !check.success && check.mandatory);
 		this.checks = checks;
@@ -35,7 +35,7 @@ public class DiagnosticResult {
 		private final Optional<String> resource;
 		private final Optional<Map<String, String>> info;
 
-		public Check(Diagnostic diagnostic, boolean success, Optional<Map<String, String>> info) {
+		public Check(MaxwellDiagnostic diagnostic, boolean success, Optional<Map<String, String>> info) {
 			this.name = diagnostic.getName();
 			this.success = success;
 			this.mandatory = diagnostic.isMandatory();

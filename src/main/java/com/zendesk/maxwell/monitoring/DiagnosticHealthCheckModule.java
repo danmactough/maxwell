@@ -1,4 +1,4 @@
-package com.zendesk.maxwell.metrics;
+package com.zendesk.maxwell.monitoring;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.Version;
@@ -16,13 +16,13 @@ public class DiagnosticHealthCheckModule extends Module {
 
 	final static Logger LOGGER = LoggerFactory.getLogger(DiagnosticHealthCheckModule.class);
 
-	private static class DiagnosticHealthCheckResultSerializer extends StdSerializer<DiagnosticResult> {
+	private static class DiagnosticHealthCheckResultSerializer extends StdSerializer<MaxwellDiagnosticResult> {
 		private DiagnosticHealthCheckResultSerializer() {
-			super(DiagnosticResult.class);
+			super(MaxwellDiagnosticResult.class);
 		}
 
 		@Override
-		public void serialize(DiagnosticResult result,
+		public void serialize(MaxwellDiagnosticResult result,
 													JsonGenerator json,
 													SerializerProvider provider) throws IOException {
 			json.writeStartObject();
@@ -36,7 +36,7 @@ public class DiagnosticHealthCheckModule extends Module {
 			json.writeEndObject();
 		}
 
-		private void serializeCheck(JsonGenerator json, DiagnosticResult.Check check) {
+		private void serializeCheck(JsonGenerator json, MaxwellDiagnosticResult.Check check) {
 			try {
 				json.writeStartObject();
 				json.writeStringField("name", check.getName());
@@ -46,7 +46,7 @@ public class DiagnosticHealthCheckModule extends Module {
 					try {
 						json.writeStringField("resource", resource);
 					} catch (IOException e) {
-						LOGGER.error("Could not serialize DiagnosticResult.Check resource", e);
+						LOGGER.error("Could not serialize MaxwellDiagnosticResult.Check resource", e);
 					}
 				});
 				check.getInfo().ifPresent(info -> {
@@ -54,13 +54,13 @@ public class DiagnosticHealthCheckModule extends Module {
 						try {
 							json.writeStringField(k, v);
 						} catch (IOException e) {
-							LOGGER.error("Could not serialize DiagnosticResult.Check info", e);
+							LOGGER.error("Could not serialize MaxwellDiagnosticResult.Check info", e);
 						}
 					});
 				});
 				json.writeEndObject();
 			} catch (IOException e) {
-				LOGGER.error("Could not serialize DiagnosticResult.Check", e);
+				LOGGER.error("Could not serialize MaxwellDiagnosticResult.Check", e);
 			}
 		}
 	}

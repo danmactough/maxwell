@@ -2,8 +2,8 @@ package com.zendesk.maxwell.recovery;
 
 import com.zendesk.maxwell.CaseSensitivity;
 import com.zendesk.maxwell.MaxwellMysqlConfig;
-import com.zendesk.maxwell.metrics.Metrics;
-import com.zendesk.maxwell.metrics.NoOpMetrics;
+import com.zendesk.maxwell.monitoring.Metrics;
+import com.zendesk.maxwell.monitoring.NoOpMetrics;
 import com.zendesk.maxwell.replication.BinlogConnectorReplicator;
 import com.zendesk.maxwell.replication.BinlogPosition;
 import com.zendesk.maxwell.replication.HeartbeatNotifier;

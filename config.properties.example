@@ -190,6 +190,9 @@ kinesis_stream=maxwell
 # When metrics_type includes http or diagnostic is enabled, this is the port the server will bind to.
 #monitoring_http_port=8080
 
+# When metrics_type includes http or diagnostic is enabled, this is the http path prefix, default is empty.
+#monitoring_http_path_prefix=/monitoring
+
 # ** The following are Datadog specific. **
 # When metrics_type includes datadog this is the way metrics will be reported.
 # Options: [udp, http]
@@ -219,8 +222,8 @@ kinesis_stream=maxwell
 # Diagnostic http endpoint path, required if diagnostic = true
 #diagnostic_path=/diagnostic # default /diagnostic
 
-# Diagnostic check timeout, required if diagnostic = true
-#diagnostic_timeout=5000 # default 5000
+# Diagnostic check timeout in milliseconds, required if diagnostic = true
+#diagnostic_timeout=10000 # default 10000
 
 ######### misc stuff ###############
 

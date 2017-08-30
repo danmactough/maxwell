@@ -2,7 +2,6 @@ package com.zendesk.maxwell.monitoring;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class MaxwellDiagnosticResult {
 
@@ -32,10 +31,10 @@ public class MaxwellDiagnosticResult {
 		private final String name;
 		private final boolean success;
 		private final boolean mandatory;
-		private final Optional<String> resource;
-		private final Optional<Map<String, String>> info;
+		private final String resource;
+		private final Map<String, String> info;
 
-		public Check(MaxwellDiagnostic diagnostic, boolean success, Optional<Map<String, String>> info) {
+		public Check(MaxwellDiagnostic diagnostic, boolean success, Map<String, String> info) {
 			this.name = diagnostic.getName();
 			this.success = success;
 			this.mandatory = diagnostic.isMandatory();
@@ -55,11 +54,11 @@ public class MaxwellDiagnosticResult {
 			return mandatory;
 		}
 
-		public Optional<String> getResource() {
+		public String getResource() {
 			return resource;
 		}
 
-		public Optional<Map<String, String>> getInfo() {
+		public Map<String, String> getInfo() {
 			return info;
 		}
 	}

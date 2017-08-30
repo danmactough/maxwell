@@ -1,6 +1,5 @@
 package com.zendesk.maxwell.monitoring;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public interface MaxwellDiagnostic {
@@ -9,7 +8,7 @@ public interface MaxwellDiagnostic {
 
 	boolean isMandatory();
 
-	Optional<String> getResource();
+	String getResource();
 
 	CompletableFuture<MaxwellDiagnosticResult.Check> check();
 

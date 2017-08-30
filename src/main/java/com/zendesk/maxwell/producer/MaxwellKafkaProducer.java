@@ -89,7 +89,7 @@ class KafkaCallback implements Callback {
 }
 
 
-public class MaxwellKafkaProducer extends AbstractProducer implements DiagnosticProducer {
+public class MaxwellKafkaProducer extends AbstractProducer {
 	private final ArrayBlockingQueue<RowMap> queue;
 	private final MaxwellKafkaProducerWorker worker;
 

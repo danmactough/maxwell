@@ -1,10 +1,10 @@
 package com.zendesk.maxwell.producer;
 
 import com.zendesk.maxwell.MaxwellConfig;
-import com.zendesk.maxwell.row.RowMap;
-import com.zendesk.maxwell.schema.PositionStoreThread;
 import com.zendesk.maxwell.monitoring.MaxwellDiagnostic;
 import com.zendesk.maxwell.monitoring.MaxwellDiagnosticResult;
+import com.zendesk.maxwell.row.RowMap;
+import com.zendesk.maxwell.schema.PositionStoreThread;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -12,7 +12,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class KafkaProducerDiagnostic implements MaxwellDiagnostic {
@@ -43,8 +42,8 @@ public class KafkaProducerDiagnostic implements MaxwellDiagnostic {
 	}
 
 	@Override
-	public Optional<String> getResource() {
-		return Optional.ofNullable(config.getKafkaProperties().getProperty("bootstrap.servers"));
+	public String getResource() {
+		return config.getKafkaProperties().getProperty("bootstrap.servers");
 	}
 
 	public CompletableFuture<Long> getLatency() {
@@ -63,13 +62,13 @@ public class KafkaProducerDiagnostic implements MaxwellDiagnostic {
 	private MaxwellDiagnosticResult.Check normalResult(Long latency) {
 		Map<String, String> info = new HashMap<>();
 		info.put("message", "Kafka producer acknowledgement lag is " + latency.toString() + "ms");
-		return new MaxwellDiagnosticResult.Check(this, true, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, true, info);
 	}
 
 	private MaxwellDiagnosticResult.Check exceptionResult(Throwable e) {
 		Map<String, String> info = new HashMap<>();
 		info.put("error", e.getCause().toString());
-		return new MaxwellDiagnosticResult.Check(this, false, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, false, info);
 	}
 
 	static class DiagnosticCallback implements Callback {

@@ -6,13 +6,13 @@ import com.codahale.metrics.servlets.PingServlet;
 import com.zendesk.maxwell.MaxwellConfig;
 import com.zendesk.maxwell.MaxwellContext;
 import com.zendesk.maxwell.util.StoppableTask;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import static com.zendesk.maxwell.monitoring.MaxwellMetrics.reportingTypeHttp;
@@ -22,12 +22,14 @@ public class MaxwellHTTPServer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MaxwellHTTPServer.class);
 
 	public static void startIfRequired(MaxwellContext context) {
-		Optional<MaxwellMetrics.Registries> metricsRegistries = getMetricsRegistries(context.getConfig());
-		Optional<MaxwellDiagnosticContext> diagnosticContext = getDiagnosticContext(context);
-		if (metricsRegistries.isPresent() || diagnosticContext.isPresent()) {
+		MaxwellMetrics.Registries metricsRegistries = getMetricsRegistries(context.getConfig());
+		MaxwellDiagnosticContext diagnosticContext = getDiagnosticContext(context);
+		if (metricsRegistries != null || diagnosticContext != null) {
 			LOGGER.info("Metrics http server starting");
 			int port = context.getConfig().monitoringHTTPPort;
-			MaxwellHTTPServerWorker maxwellHTTPServerWorker = new MaxwellHTTPServerWorker(port, metricsRegistries, diagnosticContext);
+			String pathPrefix = context.getConfig().monitoringHTTPPathPrefix;
+			MaxwellHTTPServerWorker maxwellHTTPServerWorker = new MaxwellHTTPServerWorker(port, pathPrefix,
+					metricsRegistries, diagnosticContext);
 			Thread thread = new Thread(maxwellHTTPServerWorker);
 
 			context.addTask(maxwellHTTPServerWorker);
@@ -42,18 +44,21 @@ public class MaxwellHTTPServer {
 		}
 	}
 
-	private static Optional<MaxwellMetrics.Registries> getMetricsRegistries(MaxwellConfig config) {
-		return Optional.ofNullable(config.metricsReportingType)
-				.filter(type -> type.contains(reportingTypeHttp))
-				.map(type -> new MaxwellMetrics.Registries(config.metricRegistry, config.healthCheckRegistry));
+	private static MaxwellMetrics.Registries getMetricsRegistries(MaxwellConfig config) {
+		String reportingType = config.metricsReportingType;
+		if (reportingType != null && reportingType.contains(reportingTypeHttp)) {
+			return new MaxwellMetrics.Registries(config.metricRegistry, config.healthCheckRegistry);
+		} else {
+			return null;
+		}
 	}
 
-	private static Optional<MaxwellDiagnosticContext> getDiagnosticContext(MaxwellContext context) {
+	private static MaxwellDiagnosticContext getDiagnosticContext(MaxwellContext context) {
 		MaxwellDiagnosticContext.Config diagnosticConfig = context.getConfig().diagnosticConfig;
 		if (diagnosticConfig.enable) {
-			return Optional.of(new MaxwellDiagnosticContext(diagnosticConfig, context.getDiagnostics()));
+			return new MaxwellDiagnosticContext(diagnosticConfig, context.getDiagnostics());
 		} else {
-			return Optional.empty();
+			return null;
 		}
 	}
 }
@@ -61,13 +66,15 @@ public class MaxwellHTTPServer {
 class MaxwellHTTPServerWorker implements StoppableTask, Runnable {
 
 	private int port;
-	private final Optional<MaxwellMetrics.Registries> metricsRegistries;
-	private final Optional<MaxwellDiagnosticContext> diagnosticContext;
+	private final String pathPrefix;
+	private final MaxwellMetrics.Registries metricsRegistries;
+	private final MaxwellDiagnosticContext diagnosticContext;
 	private Server server;
 
-	public MaxwellHTTPServerWorker(int port, Optional<MaxwellMetrics.Registries> metricsRegistries,
-																 Optional<MaxwellDiagnosticContext> diagnosticContext) {
+	public MaxwellHTTPServerWorker(int port, String pathPrefix, MaxwellMetrics.Registries metricsRegistries,
+																 MaxwellDiagnosticContext diagnosticContext) {
 		this.port = port;
+		this.pathPrefix = pathPrefix;
 		this.metricsRegistries = metricsRegistries;
 		this.diagnosticContext = diagnosticContext;
 	}
@@ -76,20 +83,17 @@ class MaxwellHTTPServerWorker implements StoppableTask, Runnable {
 		this.server = new Server(this.port);
 		ServletContextHandler handler = new ServletContextHandler(this.server, "/");
 
-		metricsRegistries.ifPresent(registries -> {
+		if (metricsRegistries != null) {
 			// TODO: there is a way to wire these up automagically via the AdminServlet, but it escapes me right now
-			handler.addServlet(new ServletHolder(new MetricsServlet(registries.metricRegistry)), "/metrics");
-			handler.addServlet(new ServletHolder(new HealthCheckServlet(registries.healthCheckRegistry)), "/healthcheck");
-			handler.addServlet(new ServletHolder(new PingServlet()), "/ping");
-		});
+			handler.addServlet(new ServletHolder(new MetricsServlet(metricsRegistries.metricRegistry)), genFullPath(pathPrefix, "/metrics"));
+			handler.addServlet(new ServletHolder(new HealthCheckServlet(metricsRegistries.healthCheckRegistry)), genFullPath(pathPrefix, "/healthcheck"));
+			handler.addServlet(new ServletHolder(new PingServlet()), genFullPath(pathPrefix, "/ping"));
+		}
 
-		diagnosticContext.ifPresent(context -> {
-			String path = context.config.path;
-			if (!path.startsWith("/")) {
-				path = "/" + path;
-			}
-			handler.addServlet(new ServletHolder(new DiagnosticHealthCheck(context)), path);
-		});
+		if (diagnosticContext != null) {
+			handler.addServlet(new ServletHolder(new DiagnosticHealthCheck(diagnosticContext)),
+					genFullPath(pathPrefix, diagnosticContext.config.path));
+		}
 
 		this.server.start();
 		this.server.join();
@@ -115,5 +119,25 @@ class MaxwellHTTPServerWorker implements StoppableTask, Runnable {
 
 	@Override
 	public void awaitStop(Long timeout) throws TimeoutException {
+	}
+
+	private String genFullPath(String pathPrefix, String path) {
+		String prefix = genPath(pathPrefix);
+		if (prefix != null) {
+			return prefix + genPath(path);
+		} else {
+			return genPath(path);
+		}
+	}
+
+	private String genPath(String path) {
+		if (StringUtils.isNotBlank(path)) {
+			if (!path.startsWith("/")) {
+				return "/" + path;
+			}
+			return path;
+		} else {
+			return null;
+		}
 	}
 }

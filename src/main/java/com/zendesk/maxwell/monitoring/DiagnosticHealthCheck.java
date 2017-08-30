@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +53,7 @@ public class DiagnosticHealthCheck extends HttpServlet {
 				MaxwellDiagnostic diagnostic = future.getKey();
 				Map<String, String> info = new HashMap<>();
 				info.put("message", "check did not return after " + diagnosticContext.config.timeout + " ms");
-				return new MaxwellDiagnosticResult.Check(diagnostic, false, Optional.of(info));
+				return new MaxwellDiagnosticResult.Check(diagnostic, false, info);
 			}
 		}).collect(Collectors.toList());
 

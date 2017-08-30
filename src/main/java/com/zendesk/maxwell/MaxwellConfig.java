@@ -66,6 +66,7 @@ public class MaxwellConfig extends AbstractConfig {
 	public HealthCheckRegistry healthCheckRegistry;
 
 	public int monitoringHTTPPort;
+	public String monitoringHTTPPathPrefix;
 	public String metricsPrefix;
 	public String metricsReportingType;
 	public Long metricsSlf4jInterval;
@@ -205,7 +206,7 @@ public class MaxwellConfig extends AbstractConfig {
 		parser.accepts( "metrics_datadog_port", "the port to publish metrics to when metrics_datadog_type = udp" ).withOptionalArg();
 		parser.accepts( "diagnostic", "enable http diagnostic endpoint: true|false. default: false" ).withOptionalArg();
 		parser.accepts( "diagnostic_path", "the http diagnostic endpoint path when diagnostic=true. default: /diagnostic" ).withOptionalArg();
-		parser.accepts( "diagnostic_timeout", "the http diagnostic response timeout in ms when diagnostic=true. default: 5000" ).withOptionalArg();
+		parser.accepts( "diagnostic_timeout", "the http diagnostic response timeout in ms when diagnostic=true. default: 10000" ).withOptionalArg();
 
 		parser.accepts( "__separator_9" );
 
@@ -321,6 +322,7 @@ public class MaxwellConfig extends AbstractConfig {
 		this.metricsReportingType = fetchOption("metrics_type", options, properties, null);
 		this.metricsSlf4jInterval = fetchLongOption("metrics_slf4j_interval", options, properties, 60L);
 		this.monitoringHTTPPort = Integer.parseInt(fetchOption("monitoring_http_port", options, properties, "8080"));
+		this.monitoringHTTPPathPrefix = fetchOption("monitoring_http_path_prefix", options, properties, null);
 		this.metricsDatadogType = fetchOption("metrics_datadog_type", options, properties, "udp");
 		this.metricsDatadogTags = fetchOption("metrics_datadog_tags", options, properties, "");
 		this.metricsDatadogAPIKey = fetchOption("metrics_datadog_apikey", options, properties, "");
@@ -332,7 +334,7 @@ public class MaxwellConfig extends AbstractConfig {
 		this.diagnosticConfig.enable = fetchBooleanOption("diagnostic", options, properties, false);
 		this.diagnosticConfig.port = this.monitoringHTTPPort;
 		this.diagnosticConfig.path = fetchOption("diagnostic_path", options, properties, "/diagnostic");
-		this.diagnosticConfig.timeout = fetchLongOption("diagnostic_timeout", options, properties, 5000L);
+		this.diagnosticConfig.timeout = fetchLongOption("diagnostic_timeout", options, properties, 10000L);
 
 		this.includeDatabases   = fetchOption("include_dbs", options, properties, null);
 		this.excludeDatabases   = fetchOption("exclude_dbs", options, properties, null);

@@ -9,7 +9,6 @@ import com.zendesk.maxwell.monitoring.MaxwellMetrics;
 import com.zendesk.maxwell.monitoring.Metrics;
 import com.zendesk.maxwell.producer.AbstractProducer;
 import com.zendesk.maxwell.producer.BufferedProducer;
-import com.zendesk.maxwell.producer.DiagnosticProducer;
 import com.zendesk.maxwell.producer.FileProducer;
 import com.zendesk.maxwell.producer.MaxwellKafkaProducer;
 import com.zendesk.maxwell.producer.MaxwellKinesisProducer;
@@ -369,8 +368,8 @@ public class MaxwellContext {
 			}
 		}
 
-		if (this.producer != null && this.producer instanceof DiagnosticProducer) {
-			diagnostics.add(((DiagnosticProducer) producer).getDiagnostic());
+		if (this.producer != null && this.producer.getDiagnostic() != null) {
+			diagnostics.add(producer.getDiagnostic());
 		}
 
 		StoppableTask task = null;

@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class BinlogConnectorDiagnostic implements MaxwellDiagnostic {
@@ -37,9 +36,9 @@ public class BinlogConnectorDiagnostic implements MaxwellDiagnostic {
 	}
 
 	@Override
-	public Optional<String> getResource() {
+	public String getResource() {
 		MaxwellMysqlConfig mysql = context.getConfig().maxwellMysql;
-		return Optional.of(mysql.host + ":" + mysql.port);
+		return mysql.host + ":" + mysql.port;
 	}
 
 	public CompletableFuture<Long> getLatency() {
@@ -56,13 +55,13 @@ public class BinlogConnectorDiagnostic implements MaxwellDiagnostic {
 	private MaxwellDiagnosticResult.Check normalResult(Long latency) {
 		Map<String, String> info = new HashMap<>();
 		info.put("message", "Binlog replication lag is " + latency.toString() + "ms");
-		return new MaxwellDiagnosticResult.Check(this, true, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, true, info);
 	}
 
 	private MaxwellDiagnosticResult.Check exceptionResult(Throwable e) {
 		Map<String, String> info = new HashMap<>();
 		info.put("error", e.getCause().toString());
-		return new MaxwellDiagnosticResult.Check(this, false, Optional.of(info));
+		return new MaxwellDiagnosticResult.Check(this, false, info);
 	}
 
 	static class HeartbeatObserver implements Observer {

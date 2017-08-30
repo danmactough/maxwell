@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Map;
 
 public class DiagnosticHealthCheckModule extends Module {
 
@@ -42,22 +43,14 @@ public class DiagnosticHealthCheckModule extends Module {
 				json.writeStringField("name", check.getName());
 				json.writeBooleanField("success", check.isSuccess());
 				json.writeBooleanField("mandatory", check.isMandatory());
-				check.getResource().ifPresent(resource -> {
-					try {
-						json.writeStringField("resource", resource);
-					} catch (IOException e) {
-						LOGGER.error("Could not serialize MaxwellDiagnosticResult.Check resource", e);
+				if (check.getResource() != null) {
+					json.writeStringField("resource", check.getResource());
+				}
+				if (check.getInfo() != null) {
+					for (Map.Entry<String, String> entry : check.getInfo().entrySet()) {
+						json.writeStringField(entry.getKey(), entry.getValue());
 					}
-				});
-				check.getInfo().ifPresent(info -> {
-					info.forEach((k, v) -> {
-						try {
-							json.writeStringField(k, v);
-						} catch (IOException e) {
-							LOGGER.error("Could not serialize MaxwellDiagnosticResult.Check info", e);
-						}
-					});
-				});
+				}
 				json.writeEndObject();
 			} catch (IOException e) {
 				LOGGER.error("Could not serialize MaxwellDiagnosticResult.Check", e);

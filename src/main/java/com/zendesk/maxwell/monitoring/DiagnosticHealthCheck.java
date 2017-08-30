@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +24,7 @@ public class DiagnosticHealthCheck extends HttpServlet {
 	private static final String CACHE_CONTROL = "Cache-Control";
 	private static final String NO_CACHE = "must-revalidate,no-cache,no-store";
 	private final MaxwellDiagnosticContext diagnosticContext;
-	private transient ObjectMapper mapper;
+	protected transient ObjectMapper mapper;
 
 	public DiagnosticHealthCheck(MaxwellDiagnosticContext diagnosticContext) {
 		this.diagnosticContext = diagnosticContext;
@@ -67,7 +67,7 @@ public class DiagnosticHealthCheck extends HttpServlet {
 			resp.setStatus(299);
 		}
 
-		try (OutputStream output = resp.getOutputStream()) {
+		try (PrintWriter output = resp.getWriter()) {
 			mapper.writer().writeValue(output, result);
 		}
 	}
